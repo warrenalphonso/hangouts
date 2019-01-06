@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "budo main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -15,5 +16,14 @@
   "bugs": {
     "url": "https://github.com/warrenalphonso/hangouts/issues"
   },
-  "homepage": "https://github.com/warrenalphonso/hangouts#readme"
+  "homepage": "https://github.com/warrenalphonso/hangouts#readme",
+  "dependencies": {
+    "express": "^4.16.4",
+    "simple-peer": "^9.2.0",
+    "simple-signal-client": "^2.0.0",
+    "simple-signal-server": "^2.0.0",
+    "socket.io": "^2.2.0",
+    "uniq": "^1.0.1",
+    "wrtc": "^0.3.3"
+  }
 }
