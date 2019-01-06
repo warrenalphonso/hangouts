@@ -1,16 +1,21 @@
-<html>
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Hangouts</title>
+  </head>
   <body>
-    <style>
-      #outgoing {
-        width: 600px;
-        word-wrap: break-word;
-      }
-    </style>
-    <form>
-      <textarea id="incoming"></textarea>
-      <button type="submit">submit</button>
-    </form>
-    <pre id="outgoing"></pre>
-    <script src="bundle.js"></script>
+    <label>Your ID:</label><br />
+    <textarea id="yourId"></textarea><br />
+    <label>Other ID:</label><br />
+    <textarea id="otherId"></textarea><br />
+    <button id="connect">Connect</button><br />
+
+    <label>Enter Message:</label><br />
+    <textarea id="yourMessage"></textarea>
+    <button id="send">Send</button>
+    <pre id="messages"></pre>
+
+    <script src="index.js" charset="utf-8"></script>
   </body>
 </html>
