@@ -31,11 +31,9 @@ signalServer.on('request', (request) => {
 });
 
 signalServer.on('disconnect', (socket) => {
-  const clientID = request.socket.id;
+  const clientID = socket.id;
   allIDs.delete(clientID);
 });
-
-
 
 // signalServer.on('discover', (request) => {
 //   console.log('discovered');
@@ -53,6 +51,8 @@ signalServer.on('disconnect', (socket) => {
 
 io.on('connection', (socket) => {
   console.log('New user connected');
+
+  socket.emit('blah');
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');

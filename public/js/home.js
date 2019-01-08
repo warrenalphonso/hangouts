@@ -2836,11 +2836,15 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 
 var socket = io();
 
-socket.on('connect', () => {
+socket.on('connect', function() {
   console.log('Connected to server');
 });
 
-socket.on('disconnect', () => {
+socket.on('blah', function() {
+  console.log('custom listener');
+});
+
+socket.on('disconnect', function() {
   console.log('Disconnected from server');
 });
 
@@ -2850,12 +2854,15 @@ const SimpleSignalClient = require('simple-signal-client');
 var signalClient = new SimpleSignalClient(socket);
 
 
-signalClient.discover({name: 'Warren Alphonso'});
+signalClient.discover({
+  name: 'Warren Alphonso'
+});
 
-signalClient.on('discover', (discoveryData) => {
+signalClient.on('discover', function(discoveryData) {
   console.log(discoveryData.message);
   console.log(discoveryData.arrayIDs);
 });
+
 
 
 // signalClient.on('discover', async (allIDs) => {
