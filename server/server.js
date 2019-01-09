@@ -2,6 +2,7 @@ const path = require('path');
 const http = require('http');
 const express = require('express');
 const socketIO = require('socket.io');
+const bodyParser = require('body-parser');
 
 const publicPath = path.join(__dirname, '/../public');
 const port = process.env.PORT || 3000; //process.env.PORT works for heroku
@@ -12,17 +13,40 @@ var server = http.createServer(app)
 var io = socketIO(server); //io is web socket server
 
 const signalServer = require('simple-signal-server')(io);
-const allIDs = new Set();
+var allUsers = new Set();
 
+app.use(bodyParser.urlencoded({
+  extended: false
+}));
 
 app.use(express.static(publicPath)); //connect public folder
 
+// app.get('/', (req, res) => res.sendFile(publicPath + '/index.html'));
+//
+// app.get('/home', (req, res) => {
+//   res.sendFile(publicPath + '/home.html');
+// })
+//
+// app.post('/home', (req, res) => {
+//   const postBody = req.body.name;
+//   console.log(postBody);
+//   res.sendFile(publicPath + '/home.html');
+// });
+
+
 signalServer.on('discover', (request) => {
   const clientID = request.socket.id;
-  console.log(`Client with ID: ${clientID} is trying to be discovered.`);
-  console.log(request.discoveryData.name);
-  allIDs.add(clientID);
-  request.discover(clientID, {arrayIDs: Array.from(allIDs), message: 'You were discovered.'});
+  const clientName = request.discoveryData.name;
+  console.log(`Client with ID: ${clientID} and name: ${clientName} is trying to be discovered.`);
+  allUsers.add({
+    clientName,
+    clientID
+  });
+
+  request.discover(clientID, {
+    arrayIDs: Array.from(allUsers),
+    message: 'You were discovered.'
+  });
 });
 
 signalServer.on('request', (request) => {
@@ -32,27 +56,18 @@ signalServer.on('request', (request) => {
 
 signalServer.on('disconnect', (socket) => {
   const clientID = socket.id;
-  allIDs.delete(clientID);
+  allUsers.forEach((user) => {
+    if (user.clientID === clientID) {
+      allUsers.delete(user);
+    };
+  });
 });
-
-// signalServer.on('discover', (request) => {
-//   console.log('discovered');
-//   const clientID = request.socket.id; //can change this to use any id
-//   allIDs.add(clientID); //keep track of all connected peers
-//   request.discover(clientID, Array.from(allIDs)); //respond with id and list of peers
-// });
-//
-// signalServer.on('request', (request) => {
-//   request.forward(); // forward all requests to connect
-// });
-
 
 
 
 io.on('connection', (socket) => {
   console.log('New user connected');
 
-  socket.emit('blah');
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');

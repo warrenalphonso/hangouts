@@ -21,8 +21,10 @@
   },
   "homepage": "https://github.com/warrenalphonso/hangouts#readme",
   "dependencies": {
+    "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "getusermedia": "^2.0.1",
+    "http": "0.0.0",
     "simple-peer": "^9.2.0",
     "simple-signal-client": "^2.0.2",
     "simple-signal-server": "^2.0.1",
