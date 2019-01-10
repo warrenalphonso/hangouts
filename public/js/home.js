@@ -2856,11 +2856,33 @@ var userVideoPromise = getUserMedia({
     });
   });
 
+  socket.on('allCallInfo', function(allUsersArray) {
+    allUsersArray.forEach(async function(user) {
+      if (signalClient.id === user.clientID) return //don't connect to yourself
+      const {peer, metadata} = await signalClient.connect(user.clientID, {
+        callerID: signalClient.id
+      }, {
+        initiator: true,
+        channelName: `test`,
+        trickle: false,
+        stream: stream,
+        wrtc: wrtc
+        //more stuff
+      });
+
+      peer.on('stream', function(stream) {
+        var video = document.createElement('video');
+        document.body.appendChild(video);
+
+        video.srcObject = stream;
+        video.play();
+      });
+    });
+  });
+
   signalClient.on('discover', function(discoveryData) { //handles discovery confirmation from server
     console.log(discoveryData.message);
     console.log(discoveryData.allUsersArray);
-
-
   });
 
   //receive a call ; need an accept/reject button
@@ -2881,19 +2903,25 @@ var userVideoPromise = getUserMedia({
     peer.on('stream', function(stream) {
       var video = document.createElement('video')
       document.body.appendChild(video)
-
+      video.setAttribute('id', 'incomingStream');
       video.srcObject = stream
       video.play()
     });
 
-    console.log(request.initiator);
+    peer.on('close', function() {
+      document.body.getElementById('incomingStream').remove();
+    });
+
+    jQuery('#endCall').click(function() {
+      peer.destroy();
+    });
   });
 
   //initiate a call
   jQuery('#call').on('submit', async function(e) {
     e.preventDefault();
     const id = jQuery('#IDcall').val();
-    var {
+    const {
       peer,
       metadata
     } = await signalClient.connect(id, {
@@ -2908,14 +2936,29 @@ var userVideoPromise = getUserMedia({
     });
 
     peer.on('stream', function(stream) {
-      var video = document.createElement('video')
-      document.body.appendChild(video)
-
-      video.srcObject = stream
-      video.play()
+      var video = document.createElement('video');
+      video.setAttribute('id', 'incomingStream');
+      document.body.appendChild(video);
+      video.srcObject = stream;
+      video.play();
     });
-    console.log(peer)
+
+    peer.on('close', function() {
+      document.body.getElementById('incomingStream').remove();
+    });
+
+    jQuery('#endCall').click(function() {
+      peer.destroy();
+    });
+
   });
+
+  jQuery('#allCall').click(function() {
+    //emit all call and server sends back all ids
+    socket.emit('allCallReq');
+  });
+
+
 
   //refresh user list for everyone when someone joins
   socket.on('refreshUsers', function(allUsersArray) {
