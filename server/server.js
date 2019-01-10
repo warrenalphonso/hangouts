@@ -43,10 +43,14 @@ signalServer.on('discover', (request) => {
     clientID
   });
 
+  allUsersArray = Array.from(allUsers)
+
   request.discover(clientID, {
-    arrayIDs: Array.from(allUsers),
+    allUsersArray,
     message: 'You were discovered.'
   });
+
+  io.emit('refreshUsers', allUsersArray);
 });
 
 signalServer.on('request', (request) => {
@@ -61,6 +65,7 @@ signalServer.on('disconnect', (socket) => {
       allUsers.delete(user);
     };
   });
+  io.emit('refreshUsers', allUsersArray);
 });
 
 
