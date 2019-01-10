@@ -46,7 +46,7 @@ signalServer.on('discover', (request) => {
 
 //server handles request to connect one client to another
 signalServer.on('request', (request) => {
-  console.log(`${request.initiator} is requesting connection with ${request.target}.`);
+  console.log(`${request.initiator} and name ${request.metadata.name} is requesting connection with ${request.target}.`);
   request.forward(request.target, request.metadata);
 });
 

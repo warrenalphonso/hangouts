@@ -2833,98 +2833,129 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 }).call(this,require("timers").setImmediate,require("timers").clearImmediate)
 },{"process/browser.js":7,"timers":8}],9:[function(require,module,exports){
 //this is prebrowserify bundle.js. public/js/home.js is browserified version of this file.
-const wrtc = require('wrtc');
-var getUserMedia = require('getusermedia');
-
-var userVideoPromise = getUserMedia({
-  audio: true,
-  video: {facingMode: "user"}
-}, function(err, stream) {
-  if (err) return console.log(err)
-
-  var socket = io();
-  const SimpleSignalClient = require('simple-signal-client');
-  var signalClient = new SimpleSignalClient(socket);
+const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
+const getUserMedia = require('getusermedia');
+const {streamVideo} = require('./public/js/utils.js');
 
 
-  socket.on('connect', function() {
-    console.log('Connected to server');
+var socket = io();
+const SimpleSignalClient = require('simple-signal-client');
+var signalClient = new SimpleSignalClient(socket);
 
-    var params = jQuery.deparam(window.location.search);
-    signalClient.discover({
-      name: params.name
-    });
+//stores user's name
+var name;
+
+//user connects to web socket server
+socket.on('connect', function() {
+  console.log('Connected to server');
+
+  //get user name from url params
+  var params = jQuery.deparam(window.location.search);
+  name = params.name;
+  signalClient.discover({
+    name: params.name
+  });
+});
+
+//handles discovery confirmation from server
+signalClient.on('discover', function(discoveryData) {
+  console.log(discoveryData.message);
+  console.log(discoveryData.allUsersArray);
+});
+
+//refresh user list for everyone when someone joins
+socket.on('refreshUsers', function(allUsersArray) {
+  var ol = jQuery('<ol></ol>');
+
+  allUsersArray.forEach(function(user) {
+    ol.append(jQuery('<li></li>').text(`${user.clientName}: ${user.clientID}`));
   });
 
-  socket.on('allCallInfo', function(allUsersArray) {
-    allUsersArray.forEach(async function(user) {
-      if (signalClient.id === user.clientID) return //don't connect to yourself
-      const {peer, metadata} = await signalClient.connect(user.clientID, {
-        callerID: signalClient.id
-      }, {
-        initiator: true,
-        channelName: `test`,
-        trickle: false,
-        stream: stream,
-        wrtc: wrtc
-        //more stuff
-      });
+  jQuery('#users').html(ol);
+});
 
-      peer.on('stream', function(stream) {
-        var video = document.createElement('video');
-        document.body.appendChild(video);
+//data parameter is an object with id of other client, name
+const callPeer = function(data) {
+  getUserMedia({audio: true, video: {facingMode: 'user'}}, async function(err, stream) {
+    //handle error
+    if (err) return console.log(err);
 
-        video.srcObject = stream;
-        video.play();
-      });
-    });
-  });
-
-  signalClient.on('discover', function(discoveryData) { //handles discovery confirmation from server
-    console.log(discoveryData.message);
-    console.log(discoveryData.allUsersArray);
-  });
-
-  //receive a call ; need an accept/reject button
-  signalClient.on('request', async function(request) {
-    const {
-      peer,
-      metadata
-    } = await request.accept({
-      callerID: signalClient.id
+    //peer and metadata is stuff calling user sends!!
+    const {peer, metadata} = await signalClient.connect(data.id, {
+      name: data.name,
     }, {
-      initiator: false,
-      channelName: `test`,
-      trickle: false,
+      initiator: true,
       stream: stream,
+      trickle: false,
       wrtc: wrtc
-      //more stuff
-    });
-    peer.on('stream', function(stream) {
-      var video = document.createElement('video')
-      document.body.appendChild(video)
-      video.setAttribute('id', 'incomingStream');
-      video.srcObject = stream
-      video.play()
-    });
+      //USE STREAMS plural for multiple **************
+      }); //have to change this
 
-    peer.on('close', function() {
-      document.body.getElementById('incomingStream').remove();
-    });
-
-    jQuery('#endCall').click(function() {
-      peer.destroy();
-    });
+      if (!metadata.accept) {
+        //check if call was rejected
+        return alert('Call Rejected');
+      } else {
+        peer.on('stream', function(stream) {
+          document.body.appendChild(streamVideo(stream));
+        });
+      };
   });
+};
 
-  //initiate a call
-  jQuery('#call').on('submit', async function(e) {
-    e.preventDefault();
-    const id = jQuery('#IDcall').val();
-    const {
-      peer,
-      metadata
-    } = await signalClient.connect(id, {
+
+//receive a call
+signalClient.on('request', function(request) {
+  //update incomingCalls
+  var li = jQuery('<li></li>');
+  li.html(`${request.metadata.name} is calling. <button name="incomingCall" id="accept">Accept </button>
+  <button name="incomingCall" id="reject">Reject</button>`);
+  jQuery('#incomingCalls').html(li);
+  jQuery('[name=incomingCall]').on('click', function(e) {
+    //set peer and metadata variables -- receiving these from caller
+    var peer, metadata;
+    if (e.target.id === 'accept'){
+      getUserMedia({audio: true, video: {facingMode: "user"}}, async function(err, stream) {
+        //handle error
+        if (err) return console.log(err);
+
+        accept = await request.accept({
+          accept: true
+        }, {
+          trickle: false,
+          stream: stream,
+          wrtc: wrtc
+        });
+
+        peer = accept["peer"];
+        metadata = accept["metadata"];
+
+        peer.on('stream', function(stream) {
+          document.body.appendChild(streamVideo(stream));
+        });
+      });
+    } else if (e.target.id === 'reject'){
+      getUserMedia({audio: false, video: false}, async function(err, stream) {
+        accept = await request.accept({
+          accept: false
+        }, {
+          stream: stream
+          //empty cuz denied call idk if i need to pass in stuff here tho
+        });
+      });
+    };
+  });
+});
+
+
+//user disconnects from web socket server
+socket.on('disconnect', function() {
+  console.log('Disconnected from server');
+});
+
+socket.on('allCallInfo', function(allUsersArray) {
+  allUsersArray.forEach(async function(user) {
+    if (signalClient.id === user.clientID) return //don't connect to yourself
+    const {peer, metadata} = await signalClient.connect(user.clientID, {
       callerID: signalClient.id
     }, {
       initiator: true,
@@ -2937,68 +2968,49 @@ var userVideoPromise = getUserMedia({
 
     peer.on('stream', function(stream) {
       var video = document.createElement('video');
-      video.setAttribute('id', 'incomingStream');
       document.body.appendChild(video);
+
       video.srcObject = stream;
       video.play();
     });
-
-    peer.on('close', function() {
-      document.body.getElementById('incomingStream').remove();
-    });
-
-    jQuery('#endCall').click(function() {
-      peer.destroy();
-    });
-
   });
-
-  jQuery('#allCall').click(function() {
-    //emit all call and server sends back all ids
-    socket.emit('allCallReq');
-  });
-
-
-
-  //refresh user list for everyone when someone joins
-  socket.on('refreshUsers', function(allUsersArray) {
-    var ol = jQuery('<ol></ol>');
-
-    allUsersArray.forEach(function(user) {
-      ol.append(jQuery('<li></li>').text(`${user.clientName}: ${user.clientID}`));
-    });
-
-    jQuery('#users').html(ol);
-  });
-
-
-  socket.on('disconnect', function() {
-    console.log('Disconnected from server');
-  });
-
-
-
-
-
-
-
-
-
-  // signalClient.on('discover', async (allIDs) => {
-  //   const id = await promptUserForID(allIDs);
-  //   const {peer} = await signalClient.connect(id);
-  //   console.log(signalClient.id);
-  //   peer;
-  // });
-  //
-  // signalClient.on('request', async (request) => {
-  //   const {peer} = await request.accept();
-  //   peer;
-  // });
-
 });
 
-},{"getusermedia":17,"simple-signal-client":40,"wrtc":52}],10:[function(require,module,exports){
+
+//initiate a call
+jQuery('#call').on('submit', async function(e) {
+  e.preventDefault();
+  const id = jQuery('#IDcall').val();
+  callPeer({id, name});
+  // const {
+  //   peer,
+  //   metadata
+  // } = await signalClient.connect(id, {
+  //   callerID: signalClient.id
+  // }, {
+  //   initiator: true,
+  //   channelName: `test`,
+  //   trickle: false,
+  //   stream: stream,
+  //   wrtc: wrtc
+  //   //more stuff
+  // });
+  //
+  // peer.on('stream', function(stream) {
+  //   var video = document.createElement('video');
+  //   video.setAttribute('id', 'incomingStream');
+  //   document.body.appendChild(video);
+  //   video.srcObject = stream;
+  //   video.play();
+  // });
+});
+
+jQuery('#allCall').click(function() {
+  //emit all call and server sends back all ids
+  socket.emit('allCallReq');
+});
+
+},{"./public/js/utils.js":53,"getusermedia":17,"simple-signal-client":40,"wrtc":52}],10:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -11161,5 +11173,20 @@ exports.MediaStream = window.MediaStream;
 exports.RTCIceCandidate = window.RTCIceCandidate;
 exports.RTCPeerConnection = window.RTCPeerConnection;
 exports.RTCSessionDescription = window.RTCSessionDescription;
+
+},{}],53:[function(require,module,exports){
+const streamVideo = function(stream) {
+  //if user wants to send video
+  var video = document.createElement('video');
+  video.setAttribute('id', 'userDisplay');
+  video.srcObject = stream;
+  video.play();
+  return video;
+};
+
+
+module.exports = {
+  streamVideo
+}
 
 },{}]},{},[9]);

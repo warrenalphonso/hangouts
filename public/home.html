@@ -6,13 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
   </head>
   <body>
-    <p>Hangouts</p>
+    <h3>Hangouts</h3>
+    <p>Active Calls</p>
+    <div id="calls"></div>
+
+    <p>Users Logged In</p>
     <div id="users"></div>
+
     <form id="call">
       <label>ID to call</label>
       <input type="text" id="IDcall" />
+      <!-- id="yesBoth" id="yesAudio" -->
+      <!-- <label>Video and Audio</label>
+      <input type="radio" name="typeCall" data-name="both" checked/>
+      <label>Audio</label>
+      <input type="radio" name="typeCall" data-name="audio"/> -->
       <button>Call</button>
     </form>
+
+    <p>Incoming Calls</p>
+    <div><ul id="incomingCalls">
+
+    </ul></div>
 
     <button id="allCall">Call everyone</button>
 
