@@ -3,6 +3,8 @@ const http = require('http');
 const express = require('express');
 const socketIO = require('socket.io');
 const bodyParser = require('body-parser');
+const uniqid = require('uniqid');
+
 
 const publicPath = path.join(__dirname, '/../public');
 const port = process.env.PORT || 3000; //process.env.PORT works for heroku
@@ -13,7 +15,9 @@ var server = http.createServer(app)
 var io = socketIO(server); //io is web socket server
 
 const signalServer = require('simple-signal-server')(io);
+// const {createRoom} = require('./public/js/utils.js');
 var allUsers = new Set(); //keep track of all users
+var allRooms = new Set(); //keep track of all rooms WITH AT LEAST ONE PERSON
 
 app.use(bodyParser.urlencoded({ //this is used to capture data coming via a form https://fullstack-developer.academy/how-do-you-extract-post-data-in-node-js/
   extended: false
@@ -76,6 +80,10 @@ io.on('connection', (socket) => {
     socket.emit('allCallInfo', Array.from(allUsers));
   });
 
+  //if a user accepts call server should create a room and add both initiator and receiver
+  socket.on('createRoom', (data) => {
+
+  })
   //handles socket.io disconnection
   socket.on('disconnect', () => {
     console.log('Client disconnected');

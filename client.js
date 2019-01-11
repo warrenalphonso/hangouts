@@ -63,10 +63,20 @@ signalClient.on('request', function(request) {
   jQuery('[name=incomingCall]').on('click', function(e) {
     //set peer and metadata variables -- receiving these from caller
     var peer, metadata;
+
+    //call is accepted
     if (e.target.id === 'accept'){
       getUserMedia({audio: true, video: {facingMode: "user"}}, async function(err, stream) {
         //handle error
         if (err) return console.log(err);
+
+        //server create a room and tell call initiator to join it
+        socket.emit('createRoom', {
+          user1: signalClient.id,
+          user2: request.initiator
+        });
+
+        //receiver requests to join that room
 
         accept = await request.accept({
           accept: true
@@ -84,6 +94,8 @@ signalClient.on('request', function(request) {
           document.body.appendChild(streamVideo(stream));
         });
       });
+
+    //call is rejected
     } else if (e.target.id === 'reject'){
       getUserMedia({audio: false, video: false}, async function(err, stream) {
         accept = await request.accept({

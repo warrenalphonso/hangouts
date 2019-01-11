@@ -2567,6 +2567,57 @@ function isSlowBuffer (obj) {
 }
 
 },{}],7:[function(require,module,exports){
+exports.endianness = function () { return 'LE' };
+
+exports.hostname = function () {
+    if (typeof location !== 'undefined') {
+        return location.hostname
+    }
+    else return '';
+};
+
+exports.loadavg = function () { return [] };
+
+exports.uptime = function () { return 0 };
+
+exports.freemem = function () {
+    return Number.MAX_VALUE;
+};
+
+exports.totalmem = function () {
+    return Number.MAX_VALUE;
+};
+
+exports.cpus = function () { return [] };
+
+exports.type = function () { return 'Browser' };
+
+exports.release = function () {
+    if (typeof navigator !== 'undefined') {
+        return navigator.appVersion;
+    }
+    return '';
+};
+
+exports.networkInterfaces
+= exports.getNetworkInterfaces
+= function () { return {} };
+
+exports.arch = function () { return 'javascript' };
+
+exports.platform = function () { return 'browser' };
+
+exports.tmpdir = exports.tmpDir = function () {
+    return '/tmp';
+};
+
+exports.EOL = '\n';
+
+exports.homedir = function () {
+	return '/'
+};
+
+},{}],8:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -2752,7 +2803,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function (setImmediate,clearImmediate){
 var nextTick = require('process/browser.js').nextTick;
 var apply = Function.prototype.apply;
@@ -2831,7 +2882,7 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
   delete immediateIds[id];
 };
 }).call(this,require("timers").setImmediate,require("timers").clearImmediate)
-},{"process/browser.js":7,"timers":8}],9:[function(require,module,exports){
+},{"process/browser.js":8,"timers":9}],10:[function(require,module,exports){
 //this is prebrowserify bundle.js. public/js/home.js is browserified version of this file.
 const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
@@ -2887,37 +2938,6 @@ jQuery('#allCall').click(function() {
   socket.emit('allCallReq');
 });
 
-
-
-//data parameter is an object with id of other client, name
-const callPeer = function(data) {
-  getUserMedia({audio: true, video: {facingMode: 'user'}}, async function(err, stream) {
-    //handle error
-    if (err) return console.log(err);
-
-    //peer and metadata is stuff calling user sends!!
-    const {peer, metadata} = await signalClient.connect(data.id, {
-      name: data.name,
-    }, {
-      initiator: true,
-      stream: stream,
-      trickle: false,
-      wrtc: wrtc,
-      channelName: 'different'
-      //USE STREAMS plural for multiple **************
-      }); //have to change this
-
-      if (!metadata.accept) {
-        //check if call was rejected
-        return alert('Call Rejected');
-      } else {
-        peer.on('stream', function(stream) {
-          document.body.appendChild(streamVideo(stream));
-        });
-      };
-  });
-};
-
 //receive a call
 signalClient.on('request', function(request) {
   //update incomingCalls
@@ -2928,10 +2948,20 @@ signalClient.on('request', function(request) {
   jQuery('[name=incomingCall]').on('click', function(e) {
     //set peer and metadata variables -- receiving these from caller
     var peer, metadata;
+
+    //call is accepted
     if (e.target.id === 'accept'){
       getUserMedia({audio: true, video: {facingMode: "user"}}, async function(err, stream) {
         //handle error
         if (err) return console.log(err);
+
+        //server create a room and tell call initiator to join it
+        socket.emit('createRoom', {
+          user1: signalClient.id,
+          user2: request.initiator
+        });
+
+        //receiver requests to join that room
 
         accept = await request.accept({
           accept: true
@@ -2949,6 +2979,8 @@ signalClient.on('request', function(request) {
           document.body.appendChild(streamVideo(stream));
         });
       });
+
+    //call is rejected
     } else if (e.target.id === 'reject'){
       getUserMedia({audio: false, video: false}, async function(err, stream) {
         accept = await request.accept({
@@ -2992,7 +3024,36 @@ socket.on('allCallInfo', function(allUsersArray) {
   });
 });
 
-},{"./public/js/utils.js":53,"getusermedia":17,"simple-signal-client":40,"wrtc":52}],10:[function(require,module,exports){
+//data parameter is an object with id of other client, name
+const callPeer = function(data) {
+  getUserMedia({audio: true, video: {facingMode: 'user'}}, async function(err, stream) {
+    //handle error
+    if (err) return console.log(err);
+
+    //peer and metadata is stuff calling user sends!!
+    const {peer, metadata} = await signalClient.connect(data.id, {
+      name: data.name,
+    }, {
+      initiator: true,
+      stream: stream,
+      trickle: false,
+      wrtc: wrtc,
+      channelName: 'different'
+      //USE STREAMS plural for multiple **************
+      }); //have to change this
+
+      if (!metadata.accept) {
+        //check if call was rejected
+        return alert('Call Rejected');
+      } else {
+        peer.on('stream', function(stream) {
+          document.body.appendChild(streamVideo(stream));
+        });
+      };
+  });
+};
+
+},{"./public/js/utils.js":55,"getusermedia":18,"simple-signal-client":41,"wrtc":54}],11:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -3103,7 +3164,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../../../../../../AppData/Roaming/npm/node_modules/watchify/node_modules/is-buffer/index.js")})
-},{"../../../../../../../AppData/Roaming/npm/node_modules/watchify/node_modules/is-buffer/index.js":6}],11:[function(require,module,exports){
+},{"../../../../../../../AppData/Roaming/npm/node_modules/watchify/node_modules/is-buffer/index.js":6}],12:[function(require,module,exports){
 /**
  * cuid.js
  * Collision-resistant UID generator for browsers and node.
@@ -3188,7 +3249,7 @@ cuid.fingerprint = fingerprint;
 
 module.exports = cuid;
 
-},{"./lib/fingerprint.js":12,"./lib/pad.js":13}],12:[function(require,module,exports){
+},{"./lib/fingerprint.js":13,"./lib/pad.js":14}],13:[function(require,module,exports){
 var pad = require('./pad.js');
 
 var env = typeof window === 'object' ? window : self;
@@ -3202,13 +3263,13 @@ module.exports = function fingerprint () {
   return clientId;
 };
 
-},{"./pad.js":13}],13:[function(require,module,exports){
+},{"./pad.js":14}],14:[function(require,module,exports){
 module.exports = function pad (num, size) {
   var s = '000000000' + num;
   return s.substr(s.length - size);
 };
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function (process){
 /* eslint-env browser */
 
@@ -3476,7 +3537,7 @@ formatters.j = function (v) {
 };
 
 }).call(this,require('_process'))
-},{"./common":15,"_process":7}],15:[function(require,module,exports){
+},{"./common":16,"_process":8}],16:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -3744,7 +3805,7 @@ function setup(env) {
 
 module.exports = setup;
 
-},{"ms":19}],16:[function(require,module,exports){
+},{"ms":20}],17:[function(require,module,exports){
 // originally pulled out of simple-peer
 
 module.exports = function getBrowserRTC () {
@@ -3761,7 +3822,7 @@ module.exports = function getBrowserRTC () {
   return wrtc
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 // getUserMedia helper by @HenrikJoreteg used for navigator.getUserMedia shim
 var adapter = require('webrtc-adapter');
 
@@ -3838,7 +3899,7 @@ module.exports = function (constraints, cb) {
     });
 };
 
-},{"webrtc-adapter":43}],18:[function(require,module,exports){
+},{"webrtc-adapter":45}],19:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -3863,7 +3924,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -4027,7 +4088,7 @@ function plural(ms, msAbs, n, name) {
   return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
 }
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 assert.notEqual = notEqual
 assert.notOk = notOk
 assert.equal = equal
@@ -4051,7 +4112,7 @@ function assert (t, m) {
   if (!t) throw new Error(m || 'AssertionError')
 }
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var splice = require('remove-array-items')
 var nanotiming = require('nanotiming')
 var assert = require('assert')
@@ -4215,7 +4276,7 @@ Nanobus.prototype._emit = function (arr, eventName, data, uuid) {
   }
 }
 
-},{"assert":20,"nanotiming":23,"remove-array-items":36}],22:[function(require,module,exports){
+},{"assert":21,"nanotiming":24,"remove-array-items":37}],23:[function(require,module,exports){
 var assert = require('assert')
 
 var hasWindow = typeof window !== 'undefined'
@@ -4272,7 +4333,7 @@ NanoScheduler.prototype.setTimeout = function (cb) {
 
 module.exports = createScheduler
 
-},{"assert":20}],23:[function(require,module,exports){
+},{"assert":21}],24:[function(require,module,exports){
 var scheduler = require('nanoscheduler')()
 var assert = require('assert')
 
@@ -4322,7 +4383,7 @@ function noop (cb) {
   }
 }
 
-},{"assert":20,"nanoscheduler":22}],24:[function(require,module,exports){
+},{"assert":21,"nanoscheduler":23}],25:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -4370,7 +4431,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 
 
 }).call(this,require('_process'))
-},{"_process":7}],25:[function(require,module,exports){
+},{"_process":8}],26:[function(require,module,exports){
 (function (process,global){
 'use strict'
 
@@ -4412,7 +4473,7 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":7,"safe-buffer":37}],26:[function(require,module,exports){
+},{"_process":8,"safe-buffer":38}],27:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4544,7 +4605,7 @@ Duplex.prototype._destroy = function (err, cb) {
 
   pna.nextTick(cb, err);
 };
-},{"./_stream_readable":28,"./_stream_writable":30,"core-util-is":10,"inherits":18,"process-nextick-args":24}],27:[function(require,module,exports){
+},{"./_stream_readable":29,"./_stream_writable":31,"core-util-is":11,"inherits":19,"process-nextick-args":25}],28:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4592,7 +4653,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":29,"core-util-is":10,"inherits":18}],28:[function(require,module,exports){
+},{"./_stream_transform":30,"core-util-is":11,"inherits":19}],29:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -5614,7 +5675,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":26,"./internal/streams/BufferList":31,"./internal/streams/destroy":32,"./internal/streams/stream":33,"_process":7,"core-util-is":10,"events":4,"inherits":18,"isarray":34,"process-nextick-args":24,"safe-buffer":37,"string_decoder/":41,"util":2}],29:[function(require,module,exports){
+},{"./_stream_duplex":27,"./internal/streams/BufferList":32,"./internal/streams/destroy":33,"./internal/streams/stream":34,"_process":8,"core-util-is":11,"events":4,"inherits":19,"isarray":35,"process-nextick-args":25,"safe-buffer":38,"string_decoder/":42,"util":2}],30:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -5829,7 +5890,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":26,"core-util-is":10,"inherits":18}],30:[function(require,module,exports){
+},{"./_stream_duplex":27,"core-util-is":11,"inherits":19}],31:[function(require,module,exports){
 (function (process,global,setImmediate){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -6519,7 +6580,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("timers").setImmediate)
-},{"./_stream_duplex":26,"./internal/streams/destroy":32,"./internal/streams/stream":33,"_process":7,"core-util-is":10,"inherits":18,"process-nextick-args":24,"safe-buffer":37,"timers":8,"util-deprecate":42}],31:[function(require,module,exports){
+},{"./_stream_duplex":27,"./internal/streams/destroy":33,"./internal/streams/stream":34,"_process":8,"core-util-is":11,"inherits":19,"process-nextick-args":25,"safe-buffer":38,"timers":9,"util-deprecate":44}],32:[function(require,module,exports){
 'use strict';
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -6599,7 +6660,7 @@ if (util && util.inspect && util.inspect.custom) {
     return this.constructor.name + ' ' + obj;
   };
 }
-},{"safe-buffer":37,"util":2}],32:[function(require,module,exports){
+},{"safe-buffer":38,"util":2}],33:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -6674,17 +6735,17 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":24}],33:[function(require,module,exports){
+},{"process-nextick-args":25}],34:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":4}],34:[function(require,module,exports){
+},{"events":4}],35:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -6693,7 +6754,7 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":26,"./lib/_stream_passthrough.js":27,"./lib/_stream_readable.js":28,"./lib/_stream_transform.js":29,"./lib/_stream_writable.js":30}],36:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":27,"./lib/_stream_passthrough.js":28,"./lib/_stream_readable.js":29,"./lib/_stream_transform.js":30,"./lib/_stream_writable.js":31}],37:[function(require,module,exports){
 'use strict'
 
 /**
@@ -6722,7 +6783,7 @@ module.exports = function removeItems (arr, startIdx, removeCount) {
   arr.length = len
 }
 
-},{}],37:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -6786,7 +6847,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":3}],38:[function(require,module,exports){
+},{"buffer":3}],39:[function(require,module,exports){
  /* eslint-env node */
 'use strict';
 
@@ -7394,7 +7455,7 @@ SDPUtils.isRejected = function(mediaSection) {
 // Expose public methods.
 module.exports = SDPUtils;
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 (function (Buffer){
 module.exports = Peer
 
@@ -8439,7 +8500,7 @@ function makeError (message, code) {
 function noop () {}
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":3,"debug":14,"get-browser-rtc":16,"inherits":18,"randombytes":25,"readable-stream":35}],40:[function(require,module,exports){
+},{"buffer":3,"debug":15,"get-browser-rtc":17,"inherits":19,"randombytes":26,"readable-stream":36}],41:[function(require,module,exports){
 const cuid = require('cuid')
 const inherits = require('inherits')
 const EventEmitter = require('nanobus')
@@ -8566,7 +8627,7 @@ SimpleSignalClient.prototype.destroy = function () {
 module.exports = SimpleSignalClient
 module.exports.SimplePeer = SimplePeer
 
-},{"cuid":11,"inherits":18,"nanobus":21,"simple-peer":39}],41:[function(require,module,exports){
+},{"cuid":12,"inherits":19,"nanobus":22,"simple-peer":40}],42:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8863,7 +8924,53 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":37}],42:[function(require,module,exports){
+},{"safe-buffer":38}],43:[function(require,module,exports){
+(function (process){
+/* 
+(The MIT License)
+Copyright (c) 2014 Halász Ádám <mail@adamhalasz.com>
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+//  Unique Hexatridecimal ID Generator
+// ================================================
+
+//  Dependencies
+// ================================================
+var pid = process && process.pid ? process.pid.toString(36) : '' ;
+var address = '';
+if(typeof __webpack_require__ !== 'function'){
+    var mac = '', networkInterfaces = require('os').networkInterfaces();
+    for(interface_key in networkInterfaces){
+        const networkInterface = networkInterfaces[interface_key];
+        const length = networkInterface.length;
+        for(var i = 0; i < length; i++){
+            if(networkInterface[i].mac && networkInterface[i].mac != '00:00:00:00:00:00'){
+                mac = networkInterface[i].mac; break;
+            }
+        }
+    }
+    address = mac ? parseInt(mac.replace(/\:|\D+/gi, '')).toString(36) : '' ;
+} 
+
+//  Exports
+// ================================================
+module.exports = module.exports.default = function(prefix){ return (prefix || '') + address + pid + now().toString(36); }
+module.exports.process = function(prefix){ return (prefix || '') + pid + now().toString(36); }
+module.exports.time    = function(prefix){ return (prefix || '') + now().toString(36); }
+
+//  Helpers
+// ================================================
+function now(){
+    var time = Date.now();
+    var last = now.last || time;
+    return now.last = time > last ? time : last + 1;
+}
+
+}).call(this,require('_process'))
+},{"_process":8,"os":7}],44:[function(require,module,exports){
 (function (global){
 
 /**
@@ -8934,7 +9041,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],43:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -9028,7 +9135,7 @@ function config (name) {
   }
 })();
 
-},{"./chrome/chrome_shim":44,"./edge/edge_shim":46,"./firefox/firefox_shim":48,"./safari/safari_shim":50,"./utils":51}],44:[function(require,module,exports){
+},{"./chrome/chrome_shim":46,"./edge/edge_shim":48,"./firefox/firefox_shim":50,"./safari/safari_shim":52,"./utils":53}],46:[function(require,module,exports){
 
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
@@ -9295,7 +9402,7 @@ module.exports = {
   shimGetUserMedia: require('./getusermedia')
 };
 
-},{"../utils.js":51,"./getusermedia":45}],45:[function(require,module,exports){
+},{"../utils.js":53,"./getusermedia":47}],47:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -9495,7 +9602,7 @@ module.exports = function() {
   }
 };
 
-},{"../utils.js":51}],46:[function(require,module,exports){
+},{"../utils.js":53}],48:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -10624,7 +10731,7 @@ module.exports = {
   shimGetUserMedia: require('./getusermedia')
 };
 
-},{"../utils":51,"./getusermedia":47,"sdp":38}],47:[function(require,module,exports){
+},{"../utils":53,"./getusermedia":49,"sdp":39}],49:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -10658,7 +10765,7 @@ module.exports = function() {
   };
 };
 
-},{}],48:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -10822,7 +10929,7 @@ module.exports = {
   shimGetUserMedia: require('./getusermedia')
 };
 
-},{"../utils":51,"./getusermedia":49}],49:[function(require,module,exports){
+},{"../utils":53,"./getusermedia":51}],51:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -10985,7 +11092,7 @@ module.exports = function() {
   };
 };
 
-},{"../utils":51}],50:[function(require,module,exports){
+},{"../utils":53}],52:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -11015,7 +11122,7 @@ module.exports = {
   // shimPeerConnection: safariShim.shimPeerConnection
 };
 
-},{}],51:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 /*
  *  Copyright (c) 2016 The WebRTC project authors. All Rights Reserved.
  *
@@ -11148,7 +11255,7 @@ module.exports = {
   extractVersion: utils.extractVersion
 };
 
-},{}],52:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 'use strict';
 
 exports.MediaStream = window.MediaStream;
@@ -11156,9 +11263,10 @@ exports.RTCIceCandidate = window.RTCIceCandidate;
 exports.RTCPeerConnection = window.RTCPeerConnection;
 exports.RTCSessionDescription = window.RTCSessionDescription;
 
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
+var uniqid = require('uniqid');
+
 const streamVideo = function(stream) {
-  //if user wants to send video
   var video = document.createElement('video');
   video.setAttribute('id', 'userDisplay');
   video.srcObject = stream;
@@ -11166,9 +11274,22 @@ const streamVideo = function(stream) {
   return video;
 };
 
+const createRoom = function(user1, user2) {
+  //unique id based on time, process, and machine name
+  roomID = uniqid();
+  //add to server list of rooms
+  allRooms.add({
+    roomID,
+    users: [user1, user2]
+  });
+  //tell user1 and user2 to refresh their list of active rooms
+  io.emit('refreshRooms', )
+};
+
 
 module.exports = {
-  streamVideo
+  streamVideo,
+  createRoom
 }
 
-},{}]},{},[9]);
+},{"uniqid":43}]},{},[10]);

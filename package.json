@@ -30,6 +30,7 @@
     "simple-signal-server": "^2.0.1",
     "socket.io": "^2.2.0",
     "uniq": "^1.0.1",
+    "uniqid": "^5.0.3",
     "wrtc": "^0.3.4"
   }
 }
