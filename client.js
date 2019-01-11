@@ -40,34 +40,18 @@ socket.on('refreshUsers', function(allUsersArray) {
   jQuery('#users').html(ol);
 });
 
-//data parameter is an object with id of other client, name
-const callPeer = function(data) {
-  getUserMedia({audio: true, video: {facingMode: 'user'}}, async function(err, stream) {
-    //handle error
-    if (err) return console.log(err);
+//initiate a call
+jQuery('#call').on('submit', async function(e) {
+  e.preventDefault();
+  const id = jQuery('#IDcall').val();
+  if (id === signalClient.id) return;
+  callPeer({id, name});
+});
 
-    //peer and metadata is stuff calling user sends!!
-    const {peer, metadata} = await signalClient.connect(data.id, {
-      name: data.name,
-    }, {
-      initiator: true,
-      stream: stream,
-      trickle: false,
-      wrtc: wrtc
-      //USE STREAMS plural for multiple **************
-      }); //have to change this
-
-      if (!metadata.accept) {
-        //check if call was rejected
-        return alert('Call Rejected');
-      } else {
-        peer.on('stream', function(stream) {
-          document.body.appendChild(streamVideo(stream));
-        });
-      };
-  });
-};
-
+jQuery('#allCall').click(function() {
+  //emit all call and server sends back all ids
+  socket.emit('allCallReq');
+});
 
 //receive a call
 signalClient.on('request', function(request) {
@@ -89,7 +73,8 @@ signalClient.on('request', function(request) {
         }, {
           trickle: false,
           stream: stream,
-          wrtc: wrtc
+          wrtc: wrtc,
+          channelName: 'same'
         });
 
         peer = accept["peer"];
@@ -142,36 +127,31 @@ socket.on('allCallInfo', function(allUsersArray) {
   });
 });
 
+//data parameter is an object with id of other client, name
+const callPeer = function(data) {
+  getUserMedia({audio: true, video: {facingMode: 'user'}}, async function(err, stream) {
+    //handle error
+    if (err) return console.log(err);
 
-//initiate a call
-jQuery('#call').on('submit', async function(e) {
-  e.preventDefault();
-  const id = jQuery('#IDcall').val();
-  callPeer({id, name});
-  // const {
-  //   peer,
-  //   metadata
-  // } = await signalClient.connect(id, {
-  //   callerID: signalClient.id
-  // }, {
-  //   initiator: true,
-  //   channelName: `test`,
-  //   trickle: false,
-  //   stream: stream,
-  //   wrtc: wrtc
-  //   //more stuff
-  // });
-  //
-  // peer.on('stream', function(stream) {
-  //   var video = document.createElement('video');
-  //   video.setAttribute('id', 'incomingStream');
-  //   document.body.appendChild(video);
-  //   video.srcObject = stream;
-  //   video.play();
-  // });
-});
+    //peer and metadata is stuff calling user sends!!
+    const {peer, metadata} = await signalClient.connect(data.id, {
+      name: data.name,
+    }, {
+      initiator: true,
+      stream: stream,
+      trickle: false,
+      wrtc: wrtc,
+      channelName: 'different'
+      //USE STREAMS plural for multiple **************
+      }); //have to change this
 
-jQuery('#allCall').click(function() {
-  //emit all call and server sends back all ids
-  socket.emit('allCallReq');
-});
+      if (!metadata.accept) {
+        //check if call was rejected
+        return alert('Call Rejected');
+      } else {
+        peer.on('stream', function(stream) {
+          document.body.appendChild(streamVideo(stream));
+        });
+      };
+  });
+};
