@@ -2887,6 +2887,8 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
 const {streamVideo} = require('./public/js/utils.js');
+const uniqid = require('uniqid');
+
 
 
 var socket = io();
@@ -2955,16 +2957,19 @@ signalClient.on('request', function(request) {
         //handle error
         if (err) return console.log(err);
 
+        //create unique room ID
+        roomID = uniqid();
+
         //server create a room and tell call initiator to join it
         socket.emit('createRoom', {
+          roomID,
           user1: signalClient.id,
           user2: request.initiator
         });
 
-        //receiver requests to join that room
-
         accept = await request.accept({
-          accept: true
+          accept: true,
+          roomID
         }, {
           trickle: false,
           stream: stream,
@@ -3046,6 +3051,7 @@ const callPeer = function(data) {
         //check if call was rejected
         return alert('Call Rejected');
       } else {
+        socket.emit('joinReceiverRoom', metadata.roomID);
         peer.on('stream', function(stream) {
           document.body.appendChild(streamVideo(stream));
         });
@@ -3053,7 +3059,7 @@ const callPeer = function(data) {
   });
 };
 
-},{"./public/js/utils.js":55,"getusermedia":18,"simple-signal-client":41,"wrtc":54}],11:[function(require,module,exports){
+},{"./public/js/utils.js":55,"getusermedia":18,"simple-signal-client":41,"uniqid":43,"wrtc":54}],11:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //

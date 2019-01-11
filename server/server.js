@@ -82,8 +82,20 @@ io.on('connection', (socket) => {
 
   //if a user accepts call server should create a room and add both initiator and receiver
   socket.on('createRoom', (data) => {
-
+    //add room and its two users to list of rooms
+    allRooms.add({
+      roomID: data.roomID,
+      users: [data.user1, data.user2]
+    });
+    //add receiver to room
+    socket.join(data.roomID);
   })
+
+  //caller joins receiver room
+  socket.on('joinReceiverRoom', (roomID) => {
+    socket.join(roomID);
+    console.log(allRooms)
+  });
   //handles socket.io disconnection
   socket.on('disconnect', () => {
     console.log('Client disconnected');
