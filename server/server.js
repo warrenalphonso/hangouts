@@ -89,13 +89,16 @@ io.on('connection', (socket) => {
     });
     //add receiver to room
     socket.join(data.roomID);
-  })
+    //tells user to add room to room list
+    socket.emit('addRoomToList', data.roomID);
+  });
 
   //caller joins receiver room
   socket.on('joinReceiverRoom', (roomID) => {
     socket.join(roomID);
-    console.log(allRooms)
+    socket.emit('addRoomToList', roomID);
   });
+
   //handles socket.io disconnection
   socket.on('disconnect', () => {
     console.log('Client disconnected');

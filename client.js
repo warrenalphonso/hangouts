@@ -114,6 +114,12 @@ signalClient.on('request', function(request) {
   });
 });
 
+//listen for refresh rooms
+socket.on('addRoomToList', function(newRoomID) {
+  var ol = jQuery('<ol></ol>');
+  ol.append(jQuery('<li></li>').text(`${newRoomID}`));
+  jQuery('#roomList').html(ol);
+});
 
 //user disconnects from web socket server
 socket.on('disconnect', function() {
