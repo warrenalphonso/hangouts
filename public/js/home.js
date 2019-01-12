@@ -2886,7 +2886,10 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 //this is prebrowserify bundle.js. public/js/home.js is browserified version of this file.
 const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
-const {streamVideo, openChat} = require('./public/js/utils.js');
+const {
+  streamVideo,
+  openChat
+} = require('./public/js/utils.js');
 const uniqid = require('uniqid');
 
 var socket = io();
@@ -2940,7 +2943,10 @@ jQuery('#call').on('submit', async function(e) {
   const id = jQuery('#IDcall').val();
   if (id === signalClient.id) return;
   //need to check if yall already in a call
-  initiateCall({id, name});
+  initiateCall({
+    id,
+    name
+  });
 });
 
 //receive a call
@@ -2955,8 +2961,13 @@ signalClient.on('request', function(request) {
     var peer, metadata;
 
     //call is accepted
-    if (e.target.id === 'accept'){
-      getUserMedia({audio: true, video: {facingMode: "user"}}, async function(err, stream) {
+    if (e.target.id === 'accept') {
+      getUserMedia({
+        audio: false, //change to true
+        video: {
+          facingMode: "user"
+        }
+      }, async function(err, stream) {
         //handle error
         if (err) return console.log(err);
 
@@ -2985,7 +2996,9 @@ signalClient.on('request', function(request) {
         openChat();
 
         peer.on('stream', function(stream) {
-          document.getElementById('videos').appendChild(streamVideo(stream));
+          var video = streamVideo(stream);
+          video.setAttribute('id', `${request.initiator}`);
+          document.getElementById('videos').appendChild(video);
         });
 
         //listen for leave call
@@ -2994,14 +3007,23 @@ signalClient.on('request', function(request) {
             roomID,
             userID: signalClient.id
           });
-          // peer.destroy();
+          peer.destroy();
+          jQuery('#videos').remove();
+          jQuery('#chat').remove();
+          stream.getTracks().forEach(track => track.stop());
+        });
+
+        //remove disconnected person's stream from videos div
+        socket.on('removeDisconnectedStream', function(userID) {
+          var child = document.getElementById(`${userID}`);
+          child.parentNode.removeChild(child);
         });
 
         //delete video and chat if someone hangs up
         peer.on('close', function() {
-          jQuery('#videos').remove();
-          jQuery('#chat').remove();
-          stream.getTracks().forEach(track => track.stop())
+          // document.getElementById(`${}`)
+          console.log('someone closed')
+          console.log(signalClient.peers())
         });
 
         //if error need better for caller and receiver don't end whole call
@@ -3009,14 +3031,16 @@ signalClient.on('request', function(request) {
           console.log(err);
           jQuery('#videos').remove();
           jQuery('#chat').remove();
-          stream.getTracks().forEach(track => track.stop())
+          stream.getTracks().forEach(track => track.stop());
         });
-
       });
 
-    //call is rejected
-    } else if (e.target.id === 'reject'){
-      getUserMedia({audio: false, video: false}, async function(err, stream) {
+      //call is rejected
+    } else if (e.target.id === 'reject') {
+      getUserMedia({
+        audio: false,
+        video: false
+      }, async function(err, stream) {
         accept = await request.accept({
           accept: false
         }, {
@@ -3038,12 +3062,20 @@ socket.on('disconnect', function() {
 
 //data parameter is an object with id of other client, name
 const initiateCall = function(data) {
-  getUserMedia({audio: true, video: {facingMode: 'user'}}, async function(err, stream) {
+  getUserMedia({
+    audio: false,
+    video: {
+      facingMode: 'user'
+    }
+  }, async function(err, stream) {
     //handle error
     if (err) return console.log(err);
 
     //peer and metadata is stuff calling user sends!!
-    const {peer, metadata} = await signalClient.connect(data.id, {
+    const {
+      peer,
+      metadata
+    } = await signalClient.connect(data.id, {
       name: data.name,
     }, {
       initiator: true,
@@ -3052,7 +3084,7 @@ const initiateCall = function(data) {
       wrtc: wrtc,
       channelName: 'different'
       //USE STREAMS plural for multiple **************
-      }); //have to change this
+    }); //have to change this
 
     if (!metadata.accept) {
       //check if call was rejected
@@ -3064,7 +3096,9 @@ const initiateCall = function(data) {
       openChat();
       //stream video to video div
       peer.on('stream', function(stream) {
-        document.getElementById('videos').appendChild(streamVideo(stream));
+        var video = streamVideo(stream);
+        video.setAttribute('id', `${data.id}`);
+        document.getElementById('videos').appendChild(video);
       });
       //listen for leave call
       jQuery('#leaveCall').on('click', function(e) {
@@ -3072,20 +3106,29 @@ const initiateCall = function(data) {
           roomID: metadata.roomID,
           userID: signalClient.id
         });
-        // peer.destroy();
-      });
-      //delete video and chat if someone hangs up
-      peer.on('close', function() {
+        peer.destroy();
         jQuery('#videos').remove();
         jQuery('#chat').remove();
-        stream.getTracks().forEach(track => track.stop())
+        stream.getTracks().forEach(track => track.stop());
+      });
+
+      //remove disconnected person's stream from videos div
+      socket.on('removeDisconnectedStream', function(userID) {
+        var child = document.getElementById(`${userID}`);
+        child.parentNode.removeChild(child);
+      });
+
+      //delete video and chat if someone hangs up
+      peer.on('close', function() {
+        console.log('someone closed')
+        console.log(signalClient.peers())
       });
       //if error
       peer.on('error', function(err) {
         console.log(err);
         jQuery('#videos').remove();
         jQuery('#chat').remove();
-        stream.getTracks().forEach(track => track.stop())
+        stream.getTracks().forEach(track => track.stop());
       });
     };
   });

@@ -46,6 +46,8 @@ signalServer.on('discover', (request) => {
 
   //tell all discovered users to refresh their users array
   io.emit('refreshUsers', allUsersArray);
+
+  request.socket.emit('refreshRooms', Array.from(allRooms))
 });
 
 //server handles request to connect one client to another
@@ -92,15 +94,16 @@ io.on('connection', (socket) => {
 
   //remove leaving user from room
   socket.on('leaveRoom', (roomAndUser) => {
+    //tell people in room to remove stream m
+    socket.to(`${roomAndUser.roomID}`).emit('removeDisconnectedStream', roomAndUser.userID);
     //leave socket room
     socket.leave(roomAndUser.roomID);
     //remove user from allRooms
     allRooms.forEach((room) => {
       if (room.roomID === roomAndUser.roomID) {
         room.users = room.users.filter(userID => userID !== roomAndUser.userID);
-        console.log(room.users)
         //check if any users are in room
-        if (room.users.length === 0) {
+        if (room.users.length <= 1) {
           allRooms.delete(room);
           io.emit('refreshRooms', Array.from(allRooms));
         };
