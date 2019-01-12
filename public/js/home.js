@@ -2886,7 +2886,7 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 //this is prebrowserify bundle.js. public/js/home.js is browserified version of this file.
 const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
-const {streamVideo} = require('./public/js/utils.js');
+const {streamVideo, openChat, closeChat} = require('./public/js/utils.js');
 const uniqid = require('uniqid');
 
 
@@ -2935,15 +2935,10 @@ jQuery('#call').on('submit', async function(e) {
   callPeer({id, name});
 });
 
-jQuery('#allCall').click(function() {
-  //emit all call and server sends back all ids
-  socket.emit('allCallReq');
-});
-
 //receive a call
 signalClient.on('request', function(request) {
   //update incomingCalls
-  var li = jQuery('<li></li>');
+  var li = jQuery(`<li id=${request.metadata.name}></li>`);
   li.html(`${request.metadata.name} is calling. <button name="incomingCall" id="accept">Accept </button>
   <button name="incomingCall" id="reject">Reject</button>`);
   jQuery('#incomingCalls').html(li);
@@ -2980,8 +2975,22 @@ signalClient.on('request', function(request) {
         peer = accept["peer"];
         metadata = accept["metadata"];
 
+        openChat();
+
         peer.on('stream', function(stream) {
-          document.body.appendChild(streamVideo(stream));
+          document.getElementById('videos').appendChild(streamVideo(stream));
+        });
+
+        //listen for leave call
+        jQuery('#leaveCall').on('click', function(e) {
+          peer.destroy();
+        });
+
+        //delete video and chat if someone hangs up
+        peer.on('close', function() {
+          jQuery('#videos').remove();
+          jQuery('#chat').remove();
+          stream.getTracks().forEach(track => track.stop())
         });
       });
 
@@ -2996,8 +3005,11 @@ signalClient.on('request', function(request) {
         });
       });
     };
+    jQuery(`#${request.metadata.name}`).remove();
   });
 });
+
+
 
 //listen for refresh rooms
 socket.on('addRoomToList', function(newRoomID) {
@@ -3029,15 +3041,31 @@ const callPeer = function(data) {
       //USE STREAMS plural for multiple **************
       }); //have to change this
 
-      if (!metadata.accept) {
-        //check if call was rejected
-        return alert('Call Rejected');
-      } else {
-        socket.emit('joinReceiverRoom', metadata.roomID);
-        peer.on('stream', function(stream) {
-          document.body.appendChild(streamVideo(stream));
-        });
-      };
+    if (!metadata.accept) {
+      //check if call was rejected
+      return alert('Call Rejected');
+    } else {
+      socket.emit('joinReceiverRoom', metadata.roomID);
+
+      openChat();
+
+      peer.on('stream', function(stream) {
+        document.getElementById('videos').appendChild(streamVideo(stream));
+      });
+
+      //listen for leave call
+      jQuery('#leaveCall').on('click', function(e) {
+        peer.destroy();
+        // closeChat();
+      });
+
+      //delete video and chat if someone hangs up
+      peer.on('close', function() {
+        jQuery('#videos').remove();
+        jQuery('#chat').remove();
+        stream.getTracks().forEach(track => track.stop())
+      });
+    };
   });
 };
 
@@ -11254,15 +11282,31 @@ exports.RTCSessionDescription = window.RTCSessionDescription;
 },{}],55:[function(require,module,exports){
 const streamVideo = function(stream) {
   var video = document.createElement('video');
-  video.setAttribute('id', 'userDisplay');
+  // video.setAttribute('id', 'userDisplay');
   video.srcObject = stream;
   video.play();
   return video;
 };
 
+const openChat = function() {
+  videoDiv = document.createElement('div');
+  videoDiv.setAttribute('id', 'videos');
+  chatDiv = document.createElement('div');
+  chatDiv.setAttribute('id', 'chat');
+  document.body.appendChild(videoDiv);
+  document.body.appendChild(chatDiv);
+};
+
+const closeChat = function() {
+  jQuery('#videos').remove();
+  jQuery('#chat').remove();
+};
+
 
 module.exports = {
-  streamVideo
+  streamVideo,
+  openChat,
+  closeChat
 }
 
 },{}]},{},[10]);
