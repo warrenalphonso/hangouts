@@ -10,20 +10,17 @@
     <p>Active Calls</p>
     <div id="calls"></div>
 
+    <p>Room List</p>
+    <div id="roomList"><ol>
+
+    </ol></div>
+
     <p>Users Logged In</p>
     <div id="users"></div>
-
-    <p>Room List</p>
-    <div id="roomList"></div>
 
     <form id="call">
       <label>ID to call</label>
       <input type="text" id="IDcall" />
-      <!-- id="yesBoth" id="yesAudio" -->
-      <!-- <label>Video and Audio</label>
-      <input type="radio" name="typeCall" data-name="both" checked/>
-      <label>Audio</label>
-      <input type="radio" name="typeCall" data-name="audio"/> -->
       <button>Call</button>
     </form>
 
@@ -31,10 +28,6 @@
     <div><ul id="incomingCalls">
 
     </ul></div>
-
-    <button id="allCall">Call everyone</button>
-
-    <!-- <button id="endCall">End Call</button> -->
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/libs/jquery-3.3.1.min.js"></script>

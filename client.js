@@ -116,38 +116,14 @@ signalClient.on('request', function(request) {
 
 //listen for refresh rooms
 socket.on('addRoomToList', function(newRoomID) {
-  var ol = jQuery('<ol></ol>');
-  ol.append(jQuery('<li></li>').text(`${newRoomID}`));
-  jQuery('#roomList').html(ol);
+  var li = jQuery('<li></li>');
+  li.html(`${newRoomID} <button id="leaveRoom">Leave Room</button>`)
+  jQuery('#roomList').append(li);
 });
 
 //user disconnects from web socket server
 socket.on('disconnect', function() {
   console.log('Disconnected from server');
-});
-
-socket.on('allCallInfo', function(allUsersArray) {
-  allUsersArray.forEach(async function(user) {
-    if (signalClient.id === user.clientID) return //don't connect to yourself
-    const {peer, metadata} = await signalClient.connect(user.clientID, {
-      callerID: signalClient.id
-    }, {
-      initiator: true,
-      channelName: `test`,
-      trickle: false,
-      stream: stream,
-      wrtc: wrtc
-      //more stuff
-    });
-
-    peer.on('stream', function(stream) {
-      var video = document.createElement('video');
-      document.body.appendChild(video);
-
-      video.srcObject = stream;
-      video.play();
-    });
-  });
 });
 
 //data parameter is an object with id of other client, name
