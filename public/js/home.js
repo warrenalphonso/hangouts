@@ -2886,10 +2886,8 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
 //this is prebrowserify bundle.js. public/js/home.js is browserified version of this file.
 const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
-const {streamVideo, openChat, closeChat} = require('./public/js/utils.js');
+const {streamVideo, openChat} = require('./public/js/utils.js');
 const uniqid = require('uniqid');
-
-
 
 var socket = io();
 const SimpleSignalClient = require('simple-signal-client');
@@ -2927,18 +2925,28 @@ socket.on('refreshUsers', function(allUsersArray) {
   jQuery('#users').html(ol);
 });
 
+//listen for refresh rooms
+socket.on('refreshRooms', function(allRoomsArray) {
+  var ol = jQuery('<ol></ol>');
+  allRoomsArray.forEach(function(room) {
+    ol.append(jQuery('<li></li>').text(`${room.roomID}`));
+  });
+  jQuery('#rooms').html(ol);
+});
+
 //initiate a call
 jQuery('#call').on('submit', async function(e) {
   e.preventDefault();
   const id = jQuery('#IDcall').val();
   if (id === signalClient.id) return;
-  callPeer({id, name});
+  //need to check if yall already in a call
+  initiateCall({id, name});
 });
 
 //receive a call
 signalClient.on('request', function(request) {
   //update incomingCalls
-  var li = jQuery(`<li id=${request.metadata.name}></li>`);
+  var li = jQuery(`<li id=${request.initiator}></li>`);
   li.html(`${request.metadata.name} is calling. <button name="incomingCall" id="accept">Accept </button>
   <button name="incomingCall" id="reject">Reject</button>`);
   jQuery('#incomingCalls').html(li);
@@ -2958,8 +2966,7 @@ signalClient.on('request', function(request) {
         //server create a room and tell call initiator to join it
         socket.emit('createRoom', {
           roomID,
-          user1: signalClient.id,
-          user2: request.initiator
+          users: [signalClient.id, request.initiator]
         });
 
         accept = await request.accept({
@@ -2983,7 +2990,11 @@ signalClient.on('request', function(request) {
 
         //listen for leave call
         jQuery('#leaveCall').on('click', function(e) {
-          peer.destroy();
+          socket.emit('leaveRoom', {
+            roomID,
+            userID: signalClient.id
+          });
+          // peer.destroy();
         });
 
         //delete video and chat if someone hangs up
@@ -2992,6 +3003,15 @@ signalClient.on('request', function(request) {
           jQuery('#chat').remove();
           stream.getTracks().forEach(track => track.stop())
         });
+
+        //if error need better for caller and receiver don't end whole call
+        peer.on('error', function(err) {
+          console.log(err);
+          jQuery('#videos').remove();
+          jQuery('#chat').remove();
+          stream.getTracks().forEach(track => track.stop())
+        });
+
       });
 
     //call is rejected
@@ -3005,18 +3025,11 @@ signalClient.on('request', function(request) {
         });
       });
     };
-    jQuery(`#${request.metadata.name}`).remove();
+    jQuery(`#${request.initiator}`).remove();
   });
 });
 
 
-
-//listen for refresh rooms
-socket.on('addRoomToList', function(newRoomID) {
-  var li = jQuery('<li></li>');
-  li.html(`${newRoomID} <button id="leaveRoom">Leave Room</button>`)
-  jQuery('#roomList').append(li);
-});
 
 //user disconnects from web socket server
 socket.on('disconnect', function() {
@@ -3024,7 +3037,7 @@ socket.on('disconnect', function() {
 });
 
 //data parameter is an object with id of other client, name
-const callPeer = function(data) {
+const initiateCall = function(data) {
   getUserMedia({audio: true, video: {facingMode: 'user'}}, async function(err, stream) {
     //handle error
     if (err) return console.log(err);
@@ -3034,7 +3047,7 @@ const callPeer = function(data) {
       name: data.name,
     }, {
       initiator: true,
-      stream: stream,
+      stream: stream, //this is stream to send
       trickle: false,
       wrtc: wrtc,
       channelName: 'different'
@@ -3045,22 +3058,31 @@ const callPeer = function(data) {
       //check if call was rejected
       return alert('Call Rejected');
     } else {
+      //join socket room
       socket.emit('joinReceiverRoom', metadata.roomID);
-
+      //open chat and video divs
       openChat();
-
+      //stream video to video div
       peer.on('stream', function(stream) {
         document.getElementById('videos').appendChild(streamVideo(stream));
       });
-
       //listen for leave call
       jQuery('#leaveCall').on('click', function(e) {
-        peer.destroy();
-        // closeChat();
+        socket.emit('leaveRoom', {
+          roomID: metadata.roomID,
+          userID: signalClient.id
+        });
+        // peer.destroy();
       });
-
       //delete video and chat if someone hangs up
       peer.on('close', function() {
+        jQuery('#videos').remove();
+        jQuery('#chat').remove();
+        stream.getTracks().forEach(track => track.stop())
+      });
+      //if error
+      peer.on('error', function(err) {
+        console.log(err);
         jQuery('#videos').remove();
         jQuery('#chat').remove();
         stream.getTracks().forEach(track => track.stop())
@@ -11297,16 +11319,9 @@ const openChat = function() {
   document.body.appendChild(chatDiv);
 };
 
-const closeChat = function() {
-  jQuery('#videos').remove();
-  jQuery('#chat').remove();
-};
-
-
 module.exports = {
   streamVideo,
-  openChat,
-  closeChat
+  openChat
 }
 
 },{}]},{},[10]);

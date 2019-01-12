@@ -69,39 +69,49 @@ signalServer.on('disconnect', (socket) => {
   io.emit('refreshUsers', allUsersArray);
 });
 
-
-
 //handles socket.io connection
 io.on('connection', (socket) => {
   console.log('New user connected');
 
-  //if a user wants to connect to everyone
-  socket.on('allCallReq', () => {
-    socket.emit('allCallInfo', Array.from(allUsers));
-  });
-
   //if a user accepts call server should create a room and add both initiator and receiver
-  socket.on('createRoom', (data) => {
+  socket.on('createRoom', (room) => {
     //add room and its two users to list of rooms
     allRooms.add({
-      roomID: data.roomID,
-      users: [data.user1, data.user2]
+      roomID: room.roomID,
+      users: room.users
     });
     //add receiver to room
-    socket.join(data.roomID);
-    //tells user to add room to room list
-    socket.emit('addRoomToList', data.roomID);
+    socket.join(room.roomID);
+    io.emit('refreshRooms', Array.from(allRooms));
   });
 
   //caller joins receiver room
   socket.on('joinReceiverRoom', (roomID) => {
     socket.join(roomID);
-    socket.emit('addRoomToList', roomID);
+  });
+
+  //remove leaving user from room
+  socket.on('leaveRoom', (roomAndUser) => {
+    //leave socket room
+    socket.leave(roomAndUser.roomID);
+    //remove user from allRooms
+    allRooms.forEach((room) => {
+      if (room.roomID === roomAndUser.roomID) {
+        room.users = room.users.filter(userID => userID !== roomAndUser.userID);
+        console.log(room.users)
+        //check if any users are in room
+        if (room.users.length === 0) {
+          allRooms.delete(room);
+          io.emit('refreshRooms', Array.from(allRooms));
+        };
+      };
+    });
   });
 
   //handles socket.io disconnection
   socket.on('disconnect', () => {
     console.log('Client disconnected');
+    //maybe remove them from calls!!! error handling takes way too long
   });
 }); //io.on registers an event listener
 

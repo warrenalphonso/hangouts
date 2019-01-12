@@ -15,14 +15,7 @@ const openChat = function() {
   document.body.appendChild(chatDiv);
 };
 
-const closeChat = function() {
-  jQuery('#videos').remove();
-  jQuery('#chat').remove();
-};
-
-
 module.exports = {
   streamVideo,
-  openChat,
-  closeChat
+  openChat
 }
