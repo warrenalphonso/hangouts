@@ -3,7 +3,8 @@ const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
 const {
   streamVideo,
-  openChat
+  openChat,
+  chatBox
 } = require('./public/js/utils.js');
 const uniqid = require('uniqid');
 
@@ -101,20 +102,46 @@ signalClient.on('request', function(request) {
         }, {
           trickle: false,
           stream: stream,
-          wrtc: wrtc,
-          channelName: 'same'
+          wrtc: wrtc
         });
 
         peer = accept["peer"];
         metadata = accept["metadata"];
 
         openChat();
+        chatBox();
 
         peer.on('stream', function(stream) {
           var video = streamVideo(stream);
           video.setAttribute('id', `${request.initiator}`);
           document.getElementById('videos').appendChild(video);
         });
+
+        //send message
+        jQuery('#messageForm').on('submit', function(e) {
+          e.preventDefault();
+          var message = jQuery('#message');
+          if (message.length === 0) {
+            return
+          } else {
+            socket.emit('createMessage', {
+              user: name,
+              text: message.val(),
+              roomID
+            }, function() {
+              message.val('');
+            });
+          };
+        });
+
+        socket.on('newMessage', function(message) {
+          var template = jQuery('#message-template').html();
+          var html = Mustache.render(template, {
+            text: message.text,
+            from: message.user
+          });
+          jQuery('#messages').append(html);
+        })
 
         //listen for leave call
         jQuery('#leaveCall').on('click', function(e) {
@@ -139,6 +166,9 @@ signalClient.on('request', function(request) {
           // document.getElementById(`${}`)
           console.log('someone closed')
           console.log(signalClient.peers())
+          jQuery('#videos').remove();
+          jQuery('#chat').remove();
+          stream.getTracks().forEach(track => track.stop());
         });
 
         //if error need better for caller and receiver don't end whole call
@@ -196,8 +226,7 @@ const initiateCall = function(data) {
       initiator: true,
       stream: stream, //this is stream to send
       trickle: false,
-      wrtc: wrtc,
-      channelName: 'different'
+      wrtc: wrtc
       //USE STREAMS plural for multiple **************
     }); //have to change this
 
@@ -209,12 +238,40 @@ const initiateCall = function(data) {
       socket.emit('joinReceiverRoom', metadata.roomID);
       //open chat and video divs
       openChat();
+      chatBox();
       //stream video to video div
       peer.on('stream', function(stream) {
         var video = streamVideo(stream);
         video.setAttribute('id', `${data.id}`);
         document.getElementById('videos').appendChild(video);
       });
+
+      //send message
+      jQuery('#messageForm').on('submit', function(e) {
+        e.preventDefault();
+        var message = jQuery('#message');
+        if (message.length === 0) {
+          return
+        } else {
+          socket.emit('createMessage', {
+            user: name,
+            text: message.val(),
+            roomID: metadata.roomID
+          }, function() {
+            message.val('');
+          });
+        };
+      });
+
+      socket.on('newMessage', function(message) {
+        var template = jQuery('#message-template').html();
+        var html = Mustache.render(template, {
+          text: message.text,
+          from: message.user
+        });
+        jQuery('#messages').append(html);
+      })
+
       //listen for leave call
       jQuery('#leaveCall').on('click', function(e) {
         socket.emit('leaveRoom', {
@@ -235,10 +292,15 @@ const initiateCall = function(data) {
 
       //delete video and chat if someone hangs up
       peer.on('close', function() {
+        // document.getElementById(`${}`)
         console.log('someone closed')
         console.log(signalClient.peers())
+        jQuery('#videos').remove();
+        jQuery('#chat').remove();
+        stream.getTracks().forEach(track => track.stop());
       });
-      //if error
+
+      //if error need better for caller and receiver don't end whole call
       peer.on('error', function(err) {
         console.log(err);
         jQuery('#videos').remove();

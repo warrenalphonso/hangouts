@@ -92,6 +92,14 @@ io.on('connection', (socket) => {
     socket.join(roomID);
   });
 
+  //user created a message
+  socket.on('createMessage', (message, callback) => {
+    io.in(`${message.roomID}`).emit('newMessage', message);
+    callback();
+  });
+
+
+
   //remove leaving user from room
   socket.on('leaveRoom', (roomAndUser) => {
     //tell people in room to remove stream m

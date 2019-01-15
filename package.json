@@ -25,6 +25,7 @@
     "express": "^4.16.4",
     "getusermedia": "^2.0.1",
     "http": "0.0.0",
+    "mustache": "^3.0.1",
     "simple-peer": "^9.2.0",
     "simple-signal-client": "^2.0.2",
     "simple-signal-server": "^2.0.1",
