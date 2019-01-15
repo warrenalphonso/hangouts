@@ -1,4 +1,5 @@
 //this is prebrowserify bundle.js. public/js/home.js is browserified version of this file.
+
 const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
 const {
@@ -12,49 +13,51 @@ var socket = io();
 const SimpleSignalClient = require('simple-signal-client');
 var signalClient = new SimpleSignalClient(socket);
 
-//stores user's name
-var name;
-
 //user connects to web socket server
-socket.on('connect', function() {
+socket.on('connect', () => {
   console.log('Connected to server');
 
   //get user name from url params
   var params = jQuery.deparam(window.location.search);
-  name = params.name;
   signalClient.discover({
     name: params.name
   });
 });
 
 //handles discovery confirmation from server
-signalClient.on('discover', function(discoveryData) {
+signalClient.on('discover', (discoveryData) => {
   console.log(discoveryData.message);
-  console.log(discoveryData.allUsersArray);
 });
 
 //refresh user list for everyone when someone joins
-socket.on('refreshUsers', function(allUsersArray) {
+socket.on('refreshUsers', (allUsersArray) => {
   var ol = jQuery('<ol></ol>');
 
-  allUsersArray.forEach(function(user) {
-    ol.append(jQuery('<li></li>').text(`${user.clientName}: ${user.clientID}`));
+  allUsersArray.forEach((user) => {
+    ol.append(jQuery('<li></li>').html(`${user.name}: <button id="${user.id}" name="call">Call</button>`));
   });
 
   jQuery('#users').html(ol);
 });
 
 //listen for refresh rooms
-socket.on('refreshRooms', function(allRoomsArray) {
+socket.on('refreshRooms', (allRoomsArray) => {
   var ol = jQuery('<ol></ol>');
-  allRoomsArray.forEach(function(room) {
+  allRoomsArray.forEach((room) => {
     ol.append(jQuery('<li></li>').text(`${room.roomID}`));
   });
   jQuery('#rooms').html(ol);
 });
 
+
+
+
+
+
+
 //initiate a call
-jQuery('#call').on('submit', async function(e) {
+jQuery("[name='call'").on('click', async (e) => {
+  console.log('yo');
   e.preventDefault();
   const id = jQuery('#IDcall').val();
   if (id === signalClient.id) return;
@@ -66,13 +69,13 @@ jQuery('#call').on('submit', async function(e) {
 });
 
 //receive a call
-signalClient.on('request', function(request) {
+signalClient.on('request', (request) => {
   //update incomingCalls
   var li = jQuery(`<li id=${request.initiator}></li>`);
   li.html(`${request.metadata.name} is calling. <button name="incomingCall" id="accept">Accept </button>
   <button name="incomingCall" id="reject">Reject</button>`);
   jQuery('#incomingCalls').html(li);
-  jQuery('[name=incomingCall]').on('click', function(e) {
+  jQuery('[name=incomingCall]').on('click', (e) => {
     //set peer and metadata variables -- receiving these from caller
     var peer, metadata;
 
@@ -83,7 +86,7 @@ signalClient.on('request', function(request) {
         video: {
           facingMode: "user"
         }
-      }, async function(err, stream) {
+      }, async (err, stream) => {
         //handle error
         if (err) return console.log(err);
 
@@ -111,14 +114,14 @@ signalClient.on('request', function(request) {
         openChat();
         chatBox();
 
-        peer.on('stream', function(stream) {
+        peer.on('stream', (stream) => {
           var video = streamVideo(stream);
           video.setAttribute('id', `${request.initiator}`);
           document.getElementById('videos').appendChild(video);
         });
 
         //send message
-        jQuery('#messageForm').on('submit', function(e) {
+        jQuery('#messageForm').on('submit', (e) => {
           e.preventDefault();
           var message = jQuery('#message');
           if (message.length === 0) {
@@ -128,13 +131,13 @@ signalClient.on('request', function(request) {
               user: name,
               text: message.val(),
               roomID
-            }, function() {
+            }, () => {
               message.val('');
             });
           };
         });
 
-        socket.on('newMessage', function(message) {
+        socket.on('newMessage', (message) => {
           var template = jQuery('#message-template').html();
           var html = Mustache.render(template, {
             text: message.text,
@@ -144,7 +147,7 @@ signalClient.on('request', function(request) {
         })
 
         //listen for leave call
-        jQuery('#leaveCall').on('click', function(e) {
+        jQuery('#leaveCall').on('click', (e) => {
           socket.emit('leaveRoom', {
             roomID,
             userID: signalClient.id
@@ -156,13 +159,13 @@ signalClient.on('request', function(request) {
         });
 
         //remove disconnected person's stream from videos div
-        socket.on('removeDisconnectedStream', function(userID) {
+        socket.on('removeDisconnectedStream', (userID) => {
           var child = document.getElementById(`${userID}`);
           child.parentNode.removeChild(child);
         });
 
         //delete video and chat if someone hangs up
-        peer.on('close', function() {
+        peer.on('close', () => {
           // document.getElementById(`${}`)
           console.log('someone closed')
           console.log(signalClient.peers())
@@ -172,7 +175,7 @@ signalClient.on('request', function(request) {
         });
 
         //if error need better for caller and receiver don't end whole call
-        peer.on('error', function(err) {
+        peer.on('error', (err) => {
           console.log(err);
           jQuery('#videos').remove();
           jQuery('#chat').remove();
@@ -185,7 +188,7 @@ signalClient.on('request', function(request) {
       getUserMedia({
         audio: false,
         video: false
-      }, async function(err, stream) {
+      }, async (err, stream) => {
         accept = await request.accept({
           accept: false
         }, {
@@ -201,18 +204,18 @@ signalClient.on('request', function(request) {
 
 
 //user disconnects from web socket server
-socket.on('disconnect', function() {
+socket.on('disconnect', () => {
   console.log('Disconnected from server');
 });
 
 //data parameter is an object with id of other client, name
-const initiateCall = function(data) {
+const initiateCall = (data) => {
   getUserMedia({
     audio: false,
     video: {
       facingMode: 'user'
     }
-  }, async function(err, stream) {
+  }, async (err, stream) => {
     //handle error
     if (err) return console.log(err);
 
@@ -240,14 +243,14 @@ const initiateCall = function(data) {
       openChat();
       chatBox();
       //stream video to video div
-      peer.on('stream', function(stream) {
+      peer.on('stream', (stream) => {
         var video = streamVideo(stream);
         video.setAttribute('id', `${data.id}`);
         document.getElementById('videos').appendChild(video);
       });
 
       //send message
-      jQuery('#messageForm').on('submit', function(e) {
+      jQuery('#messageForm').on('submit', (e) => {
         e.preventDefault();
         var message = jQuery('#message');
         if (message.length === 0) {
@@ -257,13 +260,13 @@ const initiateCall = function(data) {
             user: name,
             text: message.val(),
             roomID: metadata.roomID
-          }, function() {
+          }, () => {
             message.val('');
           });
         };
       });
 
-      socket.on('newMessage', function(message) {
+      socket.on('newMessage', (message) => {
         var template = jQuery('#message-template').html();
         var html = Mustache.render(template, {
           text: message.text,
@@ -273,7 +276,7 @@ const initiateCall = function(data) {
       })
 
       //listen for leave call
-      jQuery('#leaveCall').on('click', function(e) {
+      jQuery('#leaveCall').on('click', (e) => {
         socket.emit('leaveRoom', {
           roomID: metadata.roomID,
           userID: signalClient.id
@@ -285,13 +288,13 @@ const initiateCall = function(data) {
       });
 
       //remove disconnected person's stream from videos div
-      socket.on('removeDisconnectedStream', function(userID) {
+      socket.on('removeDisconnectedStream', (userID) => {
         var child = document.getElementById(`${userID}`);
         child.parentNode.removeChild(child);
       });
 
       //delete video and chat if someone hangs up
-      peer.on('close', function() {
+      peer.on('close', () => {
         // document.getElementById(`${}`)
         console.log('someone closed')
         console.log(signalClient.peers())
@@ -301,7 +304,7 @@ const initiateCall = function(data) {
       });
 
       //if error need better for caller and receiver don't end whole call
-      peer.on('error', function(err) {
+      peer.on('error', (err) => {
         console.log(err);
         jQuery('#videos').remove();
         jQuery('#chat').remove();

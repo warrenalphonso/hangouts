@@ -20,7 +20,7 @@ const openChat = function() {
 
 const chatBox = function() {
   jQuery('#chat').html('<form id="messageForm"><input type="text" id="message"> <button>Send</button></form>');
-};
+}; 
 
 module.exports = {
   streamVideo,

@@ -33,8 +33,8 @@ signalServer.on('discover', (request) => {
 
   //add user to allUsers set
   allUsers.add({
-    clientName,
-    clientID
+    name: clientName,
+    id: clientID
   });
 
   allUsersArray = Array.from(allUsers);
@@ -62,7 +62,7 @@ signalServer.on('disconnect', (socket) => {
 
   //deletes user from allUsers
   allUsers.forEach((user) => {
-    if (user.clientID === clientID) {
+    if (user.id === clientID) {
       allUsers.delete(user);
     };
   });
