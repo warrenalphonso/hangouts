@@ -2889,8 +2889,7 @@ const wrtc = require('wrtc'); //wrtc property needed for node simple-peer
 const getUserMedia = require('getusermedia');
 const {
   streamVideo,
-  openChat,
-  chatBox
+  addVideoDiv
 } = require('./public/js/utils.js');
 const uniqid = require('uniqid');
 
@@ -2904,6 +2903,7 @@ socket.on('connect', () => {
 
   //get user name from url params
   var params = jQuery.deparam(window.location.search);
+  name = params.name;
   signalClient.discover({
     name: params.name
   });
@@ -2919,7 +2919,7 @@ socket.on('refreshUsers', (allUsersArray) => {
   var ol = jQuery('<ol></ol>');
 
   allUsersArray.forEach((user) => {
-    ol.append(jQuery('<li></li>').html(`${user.name}: <button id="${user.id}" name="call">Call</button>`));
+    ol.append(jQuery('<li></li>').text(`${user.name}: ${user.id}`)); //initiate a call with person
   });
 
   jQuery('#users').html(ol);
@@ -2934,15 +2934,8 @@ socket.on('refreshRooms', (allRoomsArray) => {
   jQuery('#rooms').html(ol);
 });
 
-
-
-
-
-
-
 //initiate a call
-jQuery("[name='call'").on('click', async (e) => {
-  console.log('yo');
+jQuery('#call').on('submit', async (e) => {
   e.preventDefault();
   const id = jQuery('#IDcall').val();
   if (id === signalClient.id) return;
@@ -2996,8 +2989,7 @@ signalClient.on('request', (request) => {
         peer = accept["peer"];
         metadata = accept["metadata"];
 
-        openChat();
-        chatBox();
+        addVideoDiv();
 
         peer.on('stream', (stream) => {
           var video = streamVideo(stream);
@@ -3125,8 +3117,7 @@ const initiateCall = (data) => {
       //join socket room
       socket.emit('joinReceiverRoom', metadata.roomID);
       //open chat and video divs
-      openChat();
-      chatBox();
+      addVideoDiv();
       //stream video to video div
       peer.on('stream', (stream) => {
         var video = streamVideo(stream);
@@ -11418,26 +11409,16 @@ const streamVideo = function(stream) {
   return video;
 };
 
-const openChat = function() {
+const addVideoDiv = function() {
   videoDiv = document.createElement('div');
   videoDiv.setAttribute('id', 'videos');
-  messagesDiv = document.createElement('div');
-  messagesDiv.setAttribute('id', 'messages');
-  chatDiv = document.createElement('div');
-  chatDiv.setAttribute('id', 'chat');
   document.body.appendChild(videoDiv);
-  document.body.appendChild(messagesDiv);
-  document.body.appendChild(chatDiv);
 };
 
-const chatBox = function() {
-  jQuery('#chat').html('<form id="messageForm"><input type="text" id="message"> <button>Send</button></form>');
-}; 
 
 module.exports = {
   streamVideo,
-  openChat,
-  chatBox
+  addVideoDiv
 }
 
 },{}]},{},[10]);
