@@ -61,6 +61,22 @@ jQuery('#call').on('submit', async (e) => {
   });
 });
 
+socket.on('sendingRoomUsers', (users) => {
+  users.forEach((userID) => {
+    initiateCall({
+      id: userID,
+      name
+    });
+  });
+});
+
+//initate call to room
+jQuery('#roomCall').on('submit', async (e) => {
+  e.preventDefault();
+  const id = jQuery('#IDroom').val();
+  socket.emit('getRoomUsers', id);
+})
+
 //receive a call
 signalClient.on('request', (request) => {
   //update incomingCalls
@@ -111,32 +127,6 @@ signalClient.on('request', (request) => {
           video.setAttribute('id', `${request.initiator}`);
           document.getElementById('videos').appendChild(video);
         });
-
-        //send message
-        jQuery('#messageForm').on('submit', (e) => {
-          e.preventDefault();
-          var message = jQuery('#message');
-          if (message.length === 0) {
-            return
-          } else {
-            socket.emit('createMessage', {
-              user: name,
-              text: message.val(),
-              roomID
-            }, () => {
-              message.val('');
-            });
-          };
-        });
-
-        socket.on('newMessage', (message) => {
-          var template = jQuery('#message-template').html();
-          var html = Mustache.render(template, {
-            text: message.text,
-            from: message.user
-          });
-          jQuery('#messages').append(html);
-        })
 
         //listen for leave call
         jQuery('#leaveCall').on('click', (e) => {
@@ -239,32 +229,6 @@ const initiateCall = (data) => {
         video.setAttribute('id', `${data.id}`);
         document.getElementById('videos').appendChild(video);
       });
-
-      //send message
-      jQuery('#messageForm').on('submit', (e) => {
-        e.preventDefault();
-        var message = jQuery('#message');
-        if (message.length === 0) {
-          return
-        } else {
-          socket.emit('createMessage', {
-            user: name,
-            text: message.val(),
-            roomID: metadata.roomID
-          }, () => {
-            message.val('');
-          });
-        };
-      });
-
-      socket.on('newMessage', (message) => {
-        var template = jQuery('#message-template').html();
-        var html = Mustache.render(template, {
-          text: message.text,
-          from: message.user
-        });
-        jQuery('#messages').append(html);
-      })
 
       //listen for leave call
       jQuery('#leaveCall').on('click', (e) => {

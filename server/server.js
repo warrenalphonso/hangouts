@@ -75,6 +75,15 @@ signalServer.on('disconnect', (socket) => {
 io.on('connection', (socket) => {
   console.log('New user connected');
 
+  //send back user ids in a room
+  socket.on('getRoomUsers', (roomID) => {
+    allRooms.forEach((room) => {
+      if (room.roomID === roomID) {
+        socket.emit('sendingRoomUsers', room.users);
+      };
+    });
+  });
+
   //if a user accepts call server should create a room and add both initiator and receiver
   socket.on('createRoom', (room) => {
     //add room and its two users to list of rooms
@@ -90,12 +99,6 @@ io.on('connection', (socket) => {
   //caller joins receiver room
   socket.on('joinReceiverRoom', (roomID) => {
     socket.join(roomID);
-  });
-
-  //user created a message
-  socket.on('createMessage', (message, callback) => {
-    io.in(`${message.roomID}`).emit('newMessage', message);
-    callback();
   });
 
 
