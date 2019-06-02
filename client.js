@@ -91,7 +91,7 @@ signalClient.on('request', (request) => {
     //call is accepted
     if (e.target.id === 'accept') {
       getUserMedia({
-        audio: false, //change to true
+        audio: true, //change to true
         video: {
           facingMode: "user"
         }
@@ -227,7 +227,7 @@ const initiateCall = (data) => {
       peer.on('stream', (stream) => {
         var video = streamVideo(stream);
         video.setAttribute('id', `${data.id}`);
-        document.getElementById('videos').appendChild(video);
+        //document.getElementById('videos').appendChild(video);
       });
 
       //listen for leave call
